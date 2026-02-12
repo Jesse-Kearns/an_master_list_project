@@ -1,0 +1,34 @@
+﻿from,to
+Local Code,c28_local
+First Name,First Name
+Last Name,Last Name
+Short #,Unionware_id
+Member Type,c28_membership_type
+Type Date,c28_membership_type_date
+Agency Code,c28_employer
+Job Class Code,c28_job_classification
+MoD Card,c28_mod_card
+Agency Name,c28_Agency
+Bargaining Unit Code,c28_bargaining_unit
+Contract Code,c28_contract
+Address Line 1,Address
+City,City
+State Abbr.,State
+Zip Code,Zip code
+Home Email,Home_email
+Work Email,Work_email
+External Email,External Email
+Cell Phone,Cell Phone
+Birth Date,Birth Date
+Policy Group Code,c28_policy_group
+Work Address,c28_worksite_address
+Job Work City Name,c28_work_city
+Work County Name,c28_work_county
+Work Site Work Site Code,c28_subagency
+Building Code Name,c28_org_code
+Field Office Name,c28_field_office
+Local President,c28_local_president
+Local Executive Board Member,c28_council_eboard
+Policy Committee Delegate,c28_policy_comm_delegate
+Steward,c28_steward
+PEOPLE Active,c28_people
