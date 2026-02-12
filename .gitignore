@@ -1,0 +1,6 @@
+#ignore virtual env
+.venv/
+
+# Ignore all files in input_csvs and output_csvs
+input_csvs/*
+output_csvs/*
