@@ -1,22 +1,5 @@
-def rename_with_schema(df, schema_csv_path):
-    schema = pd.read_csv(schema_csv_path)
-
-    expected_from = set(schema["from"])
-    actual_cols = set(df.columns)
-
-    # 1️⃣ Check that all expected columns exist
-    missing = expected_from - actual_cols
-    if missing:
-        raise ValueError(f"Missing expected columns: {missing}")
-
-    # 2️⃣ Rename (order preserved as-is)
-    rename_map = dict(zip(schema["from"], schema["to"]))
-    df = df.rename(columns=rename_map)
-
-    return df
-
-
-import re 
+import pandas as pd
+import re
 
 def clean_phone_numbers(df, cols):
     """
@@ -35,20 +18,17 @@ def clean_phone_numbers(df, cols):
     """
     for col in cols:
         if col not in df.columns:
-            continue  # skip missing columns safely
+            continue  # skip missing columns safely. Not sure why chat put this in. surely its important.
 
         df[col] = (
             df[col]
             .astype(str)  # in case there are numeric types
-            .str.replace(r"(ext\.?|x)\s*\d+", "", regex=True, flags=re.IGNORECASE)
-            .str.replace(r"\D", "", regex=True)
-            .apply(lambda x: "1" + x if len(x) == 10 else (x if len(x) == 11 else None))
+            .str.replace(r"(ext\.?|x)\s*\d+", "", regex=True, flags=re.IGNORECASE) #regex are wild. This removes phone extensions and non-digits
+            .str.replace(r"\D", "", regex=True) #more regex to convert to digits?
+            .apply(lambda x: "1" + x if len(x) == 10 else (x if len(x) == 11 else None))#honestly dont understand the lambda function here. Context says its a one-liner for putting a '1' on the front if its 10 characters long and if its 11 do nothing, invalid numbers become NONE.
         )
 
     return df
-
-
-import pandas as pd
 
 # members and jobs table prep
 #load csv to dfs
@@ -60,7 +40,7 @@ df_jobs["Contract Code"] = df_jobs["Bargaining Unit Code"].map(
     df_bu_codes.set_index("c28_bargaining_unit")["contract"])
 
 # columns to keep
-jobs_to_keep = ["Local Code", "Employee No.", "First Name", "Last Name", "Short #","Work Email", "Member Type", "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Contract Code","Building Code Name"]
+jobs_to_keep = ["Birth Date", "AFSCME ID","Local Code", "Employee No.", "Short #", "Member Type", "Home Email", "External Email", "Work Email", "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Contract Code","Building Code Name"]
 df_jobs = df_jobs[jobs_to_keep]
 
 df_jobs["Employee No."] = (
@@ -68,10 +48,27 @@ df_jobs["Employee No."] = (
       .astype("Int64")
 )
 
+# rename member_type values to initials via mapping csv
+df_map = pd.read_csv("member_type_map.csv")
+map_series = df_map.set_index("from")["to"]
+df_jobs["Member Type"] = df_jobs["Member Type"].map(map_series)
 
+#melt/pivot
+df_personal_jobs = df_jobs.melt(
+    id_vars = ["Birth Date", "AFSCME ID","Local Code", "Employee No.", "Member Type", "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Contract Code","Building Code Name"],
+    value_vars = ["Home Email", "External Email"],
+    value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
+df_personal_jobs["Email"] = df_personal_jobs["Email"].str.lower()
+df_personal_jobs = df_personal_jobs.drop_duplicates(["Email"])
+
+df_work_jobs = df_jobs.drop(columns=["Short #", "External Email", "Home Email"])
+df_work_jobs = df_work_jobs.sort_values(by="Type Date")
+df_work_jobs["Work Email"] = df_work_jobs["Work Email"].str.lower()
+df_work_jobs = df_work_jobs.drop_duplicates("Work Email", keep='last')
 
 #check progress
-df_jobs.head() #still needs member type to be abbreviated. Employee No. will be used for join but then left out of final list.
+#df_personal_jobs.head() 
+#df_work_jobs.info()
 
 #positions table prep
 df_positions = pd.read_csv("members_and_positions.csv")
@@ -117,12 +114,11 @@ df_positions = (
         .replace({True: "Y", False: pd.NA})
 )
 
-#df_positions.head()
+
+df_positions.head()
 
 #people table prep
 df_people = pd.read_csv("members_and_people.csv")
-
-
 
 
 
@@ -132,9 +128,11 @@ df_people = df_people[people_to_keep]
 
 #Change from "Yes" to "Y". Assumes all are already "Yes" comming out of Unionware
 df_people["PEOPLE Active"] = "Y"
+df_people = df_people.drop_duplicates(["Short #"])
+df_people["PEOPLE Active"] = df_people["PEOPLE Active"].fillna("N")
 
 #check progress
-#df_people.head()
+df_people.info()
 
 #work addresses prep
 df_work_addresses = pd.read_csv("members_and_work_addresses.csv")
@@ -163,26 +161,46 @@ df_work_addresses["Employee No."] = (
       .astype("Int64")
 )
 
-work_addresses_to_keep = ["Short #", "Employee No.", "Birth Date", "Policy Group Code", "Work Address", "Job Work City Name", "Work County Name", "Work Site Work Site Code", "Field Office Name", "Job ID"]
+work_addresses_to_keep = ["Policy Group Code", "Work Address", "Job Work City Name", "Work County Name", "Work Site Work Site Code", "Field Office Name", "Job ID"]
 
-df_work_addresses = df_work_addresses[work_addresses_to_keep]
+df_work_addresses = df_work_addresses[work_addresses_to_keep].drop_duplicates()
 
+df_work_addresses.loc[df_work_addresses["Job ID"] == 78674]
 #df_work_addresses.head()
 
-
-
 #members and phones and emails prep
+
+# load data to df
 df_phones_and_emails = pd.read_csv("members_and_phones_emails.csv")
 
+# empty emails or phones if allowed = no
 df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "Home Email"] = ""
 df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "Work Email"] = ""
 df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "External Email"] = ""
 df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == "no", "Cell Phone"] = ""
 
-phones_and_emails_to_keep = ["Short #", "Home Email", "Work Email", "External Email", "Cell Phone","Job ID"]
+# define fields to keep
+#personal
+personal_to_keep = ["Short #","First Name", "Last Name", "Home Email", "External Email", "Cell Phone","Job ID"]
+df_personal = df_phones_and_emails[personal_to_keep]
+#work
+work_to_keep = ["Short #","First Name", "Last Name", "Work Email", "Cell Phone","Job ID"]
+df_work = df_phones_and_emails[work_to_keep]
+df_work = df_work.dropna(subset="Work Email")
+df_work["Work Email"] = df_work["Work Email"].str.lower()
+df_work = df_work.drop_duplicates("Work Email")
 
-df_phones_and_emails = df_phones_and_emails[phones_and_emails_to_keep]
-df_phones_and_emails.head()
+# melt/pivot emails into 1 column and drop dupes
+df_personal = df_personal.melt(
+    id_vars = ["Short #","First Name", "Last Name", "Job ID", "Cell Phone"],
+    value_vars = ["Home Email", "External Email"],
+    value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
+df_personal["Email"] = df_personal["Email"].str.lower()
+df_personal = df_personal.drop_duplicates("Email")
+
+df_personal.info()
+df_personal.loc[df_personal["Job ID"] == 78674]
+#df_work.head()
 
 df_addresses = pd.read_csv("members_and_addresses.csv")
 
@@ -192,55 +210,134 @@ mask = (
 )
 df_addresses.loc[mask, ["Address Line 1", "City", "State", "Zip Code"]] = ""
 
-addresses_to_keep = ["Short #","First Name", "Last Name", "Address Line 1", "City", "State Abbr.", "Zip Code"]
+df_addresses = df_addresses.sort_values(by="Last Updated On").drop_duplicates("Short #", keep='last')
+
+addresses_to_keep = ["Short #","Address Line 1", "City", "State Abbr.", "Zip Code"]
 
 df_addresses = df_addresses[addresses_to_keep]
 
-df_addresses = df_addresses.sort_values(by="Short #")
+df_addresses.info()
 
-df_addresses.head()
+# join function
+def join_tables (df, personal):
+    """
+    function to join all of the tables after cleaning
 
-df_all = (
-    df_jobs
-    .merge(df_positions, how="left", on="Short #")
-    .merge(df_work_addresses, how="left", on=["Employee No.", "Short #"])
-)
+    Parameters:
+    - df: input pandas df that will be joined to
+    - personal: Boolean to say whether this is to process personal or work emails. True:personal, False:work
 
-#df_all.head()
+    behavior:
+    - checks if personal equals True and joins tables
+    - drops no longer needed columns
+    - returns processed df
+    """
+    if personal == True:
+        
+        # personal list
+        df = (
+            df
+            .merge(df_people, how="left", on="Short #")
+            .merge(df_positions, how="left", on="Short #")
+            .merge(df_personal_jobs, how="left", on="Email")
+            .merge(df_addresses, how="left", on="Short #")
+            .merge(df_work_addresses, how="left", on="Job ID")
+        )
+    else:
+        #work list
+        df = (
+            df
+            .merge(df_people, how="left", on="Short #")
+            .merge(df_positions, how="left", on="Short #")
+            .merge(df_work_jobs, how="left", on="Work Email")
+            .merge(df_addresses, how="left", on="Short #")
+            .merge(df_work_addresses, how="left", on="Job ID")
+        )
+        
+        df = df.drop(columns=["Employee No.","Job ID","AFSCME ID"])
+        
+    return df
+        #check
+    #df_all_personal.loc[df_all_personal["Short #"] == 98349]
+        #df_all_personal.info()
+        #df_all_work.loc[df_all_personal["Short #"] == 84649]
+        #df_all_work.info()
 
-df_all = (
-    df_all
-    .merge(df_phones_and_emails, how="left", on=["Short #", "Work Email", "Job ID"])
-    .merge(df_people, how="left", on="Short #")
-    .merge(df_addresses, how="left", on=["Short #", "First Name", "Last Name"])
-)
+df_all_work = join_tables(df_work, False)
+df_all_work.info()
 
-df_all = df_all.drop(columns=["Employee No.", "Job ID"])
+df_all_personal = join_tables(df_personal, True)
+df_all_personal.info()
 
-#df_all.head()
+def rename_with_schema(df, personal, schema_csv_path):
+    """
+    renames headers of a dataframe based on a csv map.
+
+    Parameters:
+    - df: a pandas dataframe
+    - personal: boolean to determine if processing personal or work emails
+    - schema_csv_path: file path to the csv map
+
+    Behavior:
+    - loads schema file as variable object
+    - creates expected list of headers and actual list of headers to compare
+    - raises error if headers are missing
+    - renames headers if all expected are present
+    """
+    schema = pd.read_csv(schema_csv_path)
+
+    actual_cols = set(df.columns)
+
+    if personal == True:
+
+        expected_from = set(schema["from_personal"])
+
+        missing = expected_from - actual_cols
+        
+        if missing:
+            raise ValueError(f"Missing expected columns: {missing}")
+        rename_map = dict(zip(schema["from_personal"], schema["to_personal"]))
+        
+        df = df.rename(columns=rename_map)
+        
+        return df
+    else:
+        expected_from = set(schema["from_work"])
+        
+        missing = expected_from - actual_cols
+        
+        if missing:
+            raise ValueError(f"Missing expected columns: {missing}")
+        rename_map = dict(zip(schema["from_work"], schema["to_work"]))
+        
+        df = df.rename(columns=rename_map)
+        return df
+
 
 #normalize values. This can be refactored. will probably want to fill all NaN.
-df_all["First Name"] = df_all["First Name"].str.lower().str.capitalize().fillna("")
-df_all["Last Name"] = df_all["Last Name"].str.lower().str.capitalize().fillna("")
-df_all["Home Email"] = df_all["Home Email"].str.lower().fillna("")
-df_all["Work Email"] = df_all["Work Email"].str.lower().fillna("")
-df_all["External Email"] = df_all["External Email"].str.lower().fillna("")
+def final_clean(df, personal):
 
-# Dedupe after merge
-df_all = df_all.drop_duplicates()
+    df["First Name"] = df["First Name"].str.lower().str.capitalize().fillna("")
+    df["Last Name"] = df["Last Name"].str.lower().str.capitalize().fillna("")
+    
+    phone_cols = ["Cell Phone"]
+    df = clean_phone_numbers(df, phone_cols)
+    
+    # map bargaining unit codes
+    df = rename_with_schema(df, personal, "final_header_map.csv")
+    
+    # fill blanks in Position related fields with "N".
+    df["c28_local_president"] = df["c28_local_president"].fillna("N")
+    df["c28_council_eboard"] = df["c28_council_eboard"].fillna("N")
+    df["c28_policy_comm_delegate"] = df["c28_policy_comm_delegate"].fillna("N")
+    df["c28_steward"] = df["c28_steward"].fillna("N")
+    df["c28_people"] = df["c28_people"].fillna("N")
+   
+    return df
 
-phone_cols = ["Cell Phone"]
-df_all = clean_phone_numbers(df_all, phone_cols)
+df_all_work = final_clean(df_all_work, False)
+df_all_personal = final_clean(df_all_personal, True)
 
-# map bargaining unit codes
-df_all = rename_with_schema(df_all, "final_header_map.csv")
+df_all_work.to_csv("test_work.csv", index=False)
+df_all_personal.to_csv("test_personal.csv", index=False)
 
-# fill blanks in Position related fields with "N".
-df_all["c28_local_president"] = df_all["c28_local_president"].fillna("N")
-df_all["c28_council_eboard"] = df_all["c28_council_eboard"].fillna("N")
-df_all["c28_policy_comm_delegate"] = df_all["c28_policy_comm_delegate"].fillna("N")
-df_all["c28_steward"] = df_all["c28_steward"].fillna("N")
-df_all["c28_people"] = df_all["c28_people"].fillna("N")
-
-df_all.info()
-df_all.to_csv("test_all.csv",index=False)
