@@ -254,7 +254,7 @@ def join_tables (df, personal):
             .merge(df_work_addresses, how="left", on="Job ID")
         )
         
-        df = df.drop(columns=["Employee No.","Job ID","AFSCME ID"])
+    df = df.drop(columns=["Employee No.","Job ID","AFSCME ID"])
         
     return df
         #check
@@ -332,6 +332,27 @@ def final_clean(df, personal):
     df["c28_policy_comm_delegate"] = df["c28_policy_comm_delegate"].fillna("N")
     df["c28_steward"] = df["c28_steward"].fillna("N")
     df["c28_people"] = df["c28_people"].fillna("N")
+
+    schema = {
+        "Unionware_id": "Int64",
+        "CellPhone": "Int64",
+        "c28_local": "Int64",
+        "c28_employer": "Int64",
+        "c28_job_classification": "string",
+        "c28_bargaining_unit": "string",
+        "Zip code": "string",
+        "c28_policy_group": "Int64",
+        "Birth Date": "datetime64[ns]",
+        "c28_membership_type_date": "datetime64[ns]"
+    }
+
+    df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
+    df["c28_membership_type_date"] = pd.to_datetime(df["c28_membership_type_date"], errors="coerce")
+
+    df = df.astype(schema)  # schema without the date columns
+
+    df["Birth Date"] = df["Birth Date"].dt.strftime("%m-%d-%Y")
+    df["c28_membership_type_date"] = df["c28_membership_type_date"].dt.strftime("%m-%d-%Y")
    
     return df
 
