@@ -1,34 +1,33 @@
-﻿from,to
-Local Code,c28_local
-First Name,First Name
-Last Name,Last Name
-Short #,Unionware_id
-Member Type,c28_membership_type
-Type Date,c28_membership_type_date
-Agency Code,c28_employer
-Job Class Code,c28_job_classification
-MoD Card,c28_mod_card
-Agency Name,c28_Agency
-Bargaining Unit Code,c28_bargaining_unit
-Contract Code,c28_contract
-Address Line 1,Address
-City,City
-State Abbr.,State
-Zip Code,Zip code
-Home Email,Home_email
-Work Email,Work_email
-External Email,External Email
-Cell Phone,Cell Phone
-Birth Date,Birth Date
-Policy Group Code,c28_policy_group
-Work Address,c28_worksite_address
-Job Work City Name,c28_work_city
-Work County Name,c28_work_county
-Work Site Work Site Code,c28_subagency
-Building Code Name,c28_org_code
-Field Office Name,c28_field_office
-Local President,c28_local_president
-Local Executive Board Member,c28_council_eboard
-Policy Committee Delegate,c28_policy_comm_delegate
-Steward,c28_steward
-PEOPLE Active,c28_people
+﻿from_work,to_work,from_personal,to_personal
+Local Code,c28_local,Local Code,c28_local
+First Name,First Name,First Name,First Name
+Last Name,Last Name,Last Name,Last Name
+Short #,Unionware_id,Short #,Unionware_id
+Member Type,c28_membership_type,Member Type,c28_membership_type
+Type Date,c28_membership_type_date,Type Date,c28_membership_type_date
+Agency Code,c28_employer,Agency Code,c28_employer
+Job Class Code,c28_job_classification,Job Class Code,c28_job_classification
+MoD Card,c28_mod_card,MoD Card,c28_mod_card
+Agency Name,c28_Agency,Agency Name,c28_Agency
+Bargaining Unit Code,c28_bargaining_unit,Bargaining Unit Code,c28_bargaining_unit
+Contract Code,c28_contract,Contract Code,c28_contract
+Address Line 1,Address,Address Line 1,Address
+City,City,City,City
+State Abbr.,State,State Abbr.,State
+Zip Code,Zip code,Zip Code,Zip code
+Work Email,Work_email,Email,Email
+Cell Phone,CellPhone,Cell Phone,CellPhone
+Birth Date,Birth Date,Birth Date,Birth Date
+Policy Group Code,c28_policy_group,Policy Group Code,c28_policy_group
+Work Address,c28_worksite_address,Work Address,c28_worksite_address
+Job Work City Name,c28_work_city,Job Work City Name,c28_work_city
+Work County Name,c28_work_county,Work County Name,c28_work_county
+Work Site Work Site Code,c28_subagency,Work Site Work Site Code,c28_subagency
+Building Code Name,c28_org_code,Building Code Name,c28_org_code
+Field Office Name,c28_field_office,Field Office Name,c28_field_office
+Local President,c28_local_president,Local President,c28_local_president
+Local Executive Board Member,c28_council_eboard,Local Executive Board Member,c28_council_eboard
+Policy Committee Delegate,c28_policy_comm_delegate,Policy Committee Delegate,c28_policy_comm_delegate
+Steward,c28_steward,Steward,c28_steward
+PEOPLE Active,c28_people,PEOPLE Active,c28_people
+Local Officer,c28_local_officer,Local Officer,c28_local_officer

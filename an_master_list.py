@@ -25,14 +25,14 @@
 # each tables prep can be wrapped in a function to call in a master function for cleaner reading once this is converted to a .py script.
 # 
 
-# In[21]:
+# In[ ]:
 
 
 import pandas as pd
 import re
 
 
-# In[22]:
+# In[ ]:
 
 
 def clean_phone_numbers(df, cols):
@@ -59,13 +59,13 @@ def clean_phone_numbers(df, cols):
             .astype(str)  # in case there are numeric types
             .str.replace(r"(ext\.?|x)\s*\d+", "", regex=True, flags=re.IGNORECASE) #regex are wild. This removes phone extensions and non-digits
             .str.replace(r"\D", "", regex=True) #more regex to convert to digits?
-            .apply(lambda x: "1" + x if len(x) == 10 else (x if len(x) == 11 else None))#honestly dont understand the lambda function here. Context says its a one-liner for putting a '1' on the front if its 10 characters long and if its 11 do nothing, invalid numbers become NONE.
+            .apply(lambda x: "1" + x if isinstance(x, str) and len(x) == 10 else (x if isinstance(x, str) and len(x) == 11 else None))#honestly dont understand the lambda function here. Context says its a one-liner for putting a '1' on the front if its 10 characters long and if its 11 do nothing, invalid numbers become NONE.
         )
 
     return df
 
 
-# In[23]:
+# In[ ]:
 
 
 # members and jobs table prep
@@ -78,7 +78,12 @@ df_jobs["Contract Code"] = df_jobs["Bargaining Unit Code"].map(
     df_bu_codes.set_index("c28_bargaining_unit")["contract"])
 
 # columns to keep
-jobs_to_keep = ["Birth Date", "AFSCME ID","Local Code", "Employee No.", "Short #", "Member Type", "Home Email", "External Email", "Work Email", "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Contract Code","Building Code Name"]
+jobs_to_keep = [
+    "Birth Date", "AFSCME ID","Local Code", "Employee No.", "Short #", "Member Type", 
+    "Home Email", "External Email", "Work Email", "Type Date", "Agency Code", 
+    "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Building Code Name",
+    "Contract Code"]
+
 df_jobs = df_jobs[jobs_to_keep]
 
 df_jobs["Employee No."] = (
@@ -91,9 +96,12 @@ df_map = pd.read_csv("helper_tables/member_type_map.csv")
 map_series = df_map.set_index("from")["to"]
 df_jobs["Member Type"] = df_jobs["Member Type"].map(map_series)
 
-#melt/pivot
+#melt/unpivot
 df_personal_jobs = df_jobs.melt(
-    id_vars = ["Birth Date", "AFSCME ID","Local Code", "Employee No.", "Member Type", "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Contract Code","Building Code Name"],
+    id_vars = [
+        "Birth Date", "AFSCME ID","Local Code", "Employee No.", "Member Type", 
+        "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name",
+        "Bargaining Unit Code","Building Code Name", "Contract Code"],
     value_vars = ["Home Email", "External Email"],
     value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
 df_personal_jobs["Email"] = df_personal_jobs["Email"].str.lower()
@@ -110,7 +118,25 @@ df_work_jobs = df_work_jobs.drop_duplicates("Work Email", keep='last')
 df_work_jobs.info()
 
 
-# In[24]:
+# In[ ]:
+
+
+# Members and Contracts
+
+#load table and helper table for map
+df_contracts = pd.read_csv("inputs/members_and_contracts.csv")
+df_contract_codes = pd.read_csv("helper_tables/contract_codes_from_names.csv")
+
+# Map codes from names 
+df_contracts["Contract Code"] = df_contracts["Contract.1"].map(
+    df_contract_codes.set_index("contract")["contract code"])
+
+contracts_to_keep = ["Short #", "Contract Code"]
+df_contracts = df_contracts[contracts_to_keep]
+df_contracts.head()
+
+
+# In[ ]:
 
 
 #positions table prep
@@ -166,7 +192,7 @@ df_positions = (
 df_positions.head()
 
 
-# In[25]:
+# In[ ]:
 
 
 #people table prep
@@ -175,19 +201,19 @@ df_people = pd.read_csv("inputs/members_and_people.csv")
 
 
 #filter down
-people_to_keep = ["Short #", "Active"]
+people_to_keep = ["Short #", "PEOPLE Active"]
 df_people = df_people[people_to_keep]
 
 #Change from "Yes" to "Y". Assumes all are already "Yes" comming out of Unionware
-df_people["Active"] = "Y"
+df_people["PEOPLE Active"] = "Y"
 df_people = df_people.drop_duplicates(["Short #"])
-df_people["Active"] = df_people["Active"].fillna("N")
+df_people["PEOPLE Active"] = df_people["PEOPLE Active"].fillna("N")
 
 #check progress
 df_people.info()
 
 
-# In[26]:
+# In[ ]:
 
 
 #work addresses prep
@@ -227,7 +253,7 @@ df_work_addresses.loc[df_work_addresses["Job ID"] == 78674]
 #df_work_addresses.head()
 
 
-# In[27]:
+# In[ ]:
 
 
 #members and phones and emails prep
@@ -265,7 +291,7 @@ df_personal.loc[df_personal["Job ID"] == 78674]
 #df_work.head()
 
 
-# In[28]:
+# In[ ]:
 
 
 #create df for addresses table
@@ -290,7 +316,7 @@ df_addresses = df_addresses[addresses_to_keep]
 df_addresses.info()
 
 
-# In[29]:
+# In[ ]:
 
 
 # join function
@@ -316,6 +342,7 @@ def join_tables (df, personal):
             .merge(df_positions, how="left", on="Short #")
             .merge(df_personal_jobs, how="left", on="Email")
             .merge(df_addresses, how="left", on="Short #")
+            #.merge(df_contracts, how="left", on="Short #")
             .merge(df_work_addresses, how="left", on="Job ID")
         )
     else:
@@ -326,6 +353,7 @@ def join_tables (df, personal):
             .merge(df_positions, how="left", on="Short #")
             .merge(df_work_jobs, how="left", on="Work Email")
             .merge(df_addresses, how="left", on="Short #")
+            #.merge(df_contracts, how="left", on="Short #")
             .merge(df_work_addresses, how="left", on="Job ID")
         )
 
@@ -339,21 +367,21 @@ def join_tables (df, personal):
         #df_all_work.info()
 
 
-# In[30]:
+# In[ ]:
 
 
 df_all_work = join_tables(df_work, False)
 df_all_work.info()
 
 
-# In[31]:
+# In[ ]:
 
 
 df_all_personal = join_tables(df_personal, True)
 df_all_personal.info()
 
 
-# In[32]:
+# In[ ]:
 
 
 def rename_with_schema(df, personal, schema_csv_path):
@@ -401,29 +429,45 @@ def rename_with_schema(df, personal, schema_csv_path):
         return df
 
 
-# In[35]:
+# In[ ]:
 
 
 #normalize values. This can be refactored. will probably want to fill all NaN.
 def final_clean(df, personal):
-
+    # 1. Standardize Names & Fill NaNs
     df["First Name"] = df["First Name"].str.lower().str.capitalize().fillna("")
     df["Last Name"] = df["Last Name"].str.lower().str.capitalize().fillna("")
 
+    # 2. Clean Phone Numbers
     phone_cols = ["Cell Phone"]
     df = clean_phone_numbers(df, phone_cols)
 
-    # map bargaining unit codes
+    # 3. Map bargaining unit codes
     df = rename_with_schema(df, personal, "helper_tables/final_header_map.csv")
 
-    # fill blanks in Position related fields with "N".
-    df["c28_local_president"] = df["c28_local_president"].fillna("N")
-    df["c28_council_eboard"] = df["c28_council_eboard"].fillna("N")
-    df["c28_policy_comm_delegate"] = df["c28_policy_comm_delegate"].fillna("N")
-    df["c28_steward"] = df["c28_steward"].fillna("N")
-    df["c28_local_officer"] = df["c28_local_officer"].fillna("N")
-    df["c28_people"] = df["c28_people"].fillna("N")
+    # 4. Fill blanks in Position related fields with "N"
+    position_fields = [
+        "c28_local_president",
+        "c28_council_eboard",
+        "c28_policy_comm_delegate",
+        "c28_steward",
+        "c28_local_officer",
+        "c28_people",
+    ]
+    for field in position_fields:
+        if field in df.columns:
+            df[field] = df[field].fillna("N")
 
+    # 5. Handle Dates Safely (Bypasses the "Out of Bounds" type casting crash)
+    # We convert to datetime with coerce, then immediately format to string.
+    # This keeps the row intact and puts a blank string "" where out-of-bounds dates were.
+    for date_col in ["Birth Date", "c28_membership_type_date"]:
+        if date_col in df.columns:
+            dt_series = pd.to_datetime(df[date_col], errors="coerce", format= "mixed")
+            df[date_col] = dt_series.dt.strftime("%m-%d-%Y").fillna("")
+
+    # 6. Enforce remaining non-date Schema safely
+    # REMOVED the date columns from here so they don't trigger strict .astype() crashes
     schema = {
         "Unionware_id": "Int64",
         "CellPhone": "Int64",
@@ -433,22 +477,16 @@ def final_clean(df, personal):
         "c28_bargaining_unit": "string",
         "Zip code": "string",
         "c28_policy_group": "Int64",
-        "Birth Date": "datetime64[ns]",
-        "c28_membership_type_date": "datetime64[ns]"
     }
 
-    df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
-    df["c28_membership_type_date"] = pd.to_datetime(df["c28_membership_type_date"], errors="coerce")
-
-    df = df.astype(schema)  # schema without the date columns
-
-    df["Birth Date"] = df["Birth Date"].dt.strftime("%m-%d-%Y")
-    df["c28_membership_type_date"] = df["c28_membership_type_date"].dt.strftime("%m-%d-%Y")
+    # Only apply schema types to columns that actually exist in the dataframe
+    existing_schema = {k: v for k, v in schema.items() if k in df.columns}
+    df = df.astype(existing_schema)
 
     return df
 
 
-# In[37]:
+# In[ ]:
 
 
 df_all_work = final_clean(df_all_work, False)
@@ -456,11 +494,25 @@ df_all_personal = final_clean(df_all_personal, True)
 df_all_work.head()
 
 
-# In[38]:
+# In[ ]:
+
+
+df_all_work = df_all_work.merge(df_all_personal[["Unionware_id", "Email"]],how="left", on="Unionware_id")
+df_all_personal = df_all_personal.merge(df_all_work[["Unionware_id", "Work_email"]], how="left", on="Unionware_id")
+
+
+# In[ ]:
 
 
 df_all_work.to_csv("outputs/test_work.csv", index=False)
 df_all_personal.to_csv("outputs/test_personal.csv", index=False)
+
+
+# In[ ]:
+
+
+df_test = df_all_personal.sample(100)
+df_test.to_csv("outputs/test_rows.csv", index=False)
 
 
 # In[ ]:
