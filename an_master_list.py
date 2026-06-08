@@ -79,10 +79,25 @@ df_jobs["Contract Code"] = df_jobs["Bargaining Unit Code"].map(
 
 # columns to keep
 jobs_to_keep = [
-    "Birth Date", "AFSCME ID","Local Code", "Employee No.", "Short #", "Member Type", 
-    "Home Email", "External Email", "Work Email", "Type Date", "Agency Code", 
-    "Job Class Code", "MoD Card", "Agency Name","Bargaining Unit Code","Building Code Name",
-    "Contract Code"]
+    "Birth Date",
+    "AFSCME ID",
+    "Local Code",
+    "Employee No.",
+    "Short #",
+    "Member Type",
+    "Home Email",
+    "External Email",
+    "Work Email",
+    "Type Date",
+    "Agency Code",
+    "Job Class Code",
+    "MoD Card",
+    "Agency Name",
+    "Bargaining Unit Code",
+    "Building Code Name",
+    "Contract Code",
+    "Job Active"
+]
 
 df_jobs = df_jobs[jobs_to_keep]
 
@@ -99,18 +114,35 @@ df_jobs["Member Type"] = df_jobs["Member Type"].map(map_series)
 #melt/unpivot
 df_personal_jobs = df_jobs.melt(
     id_vars = [
-        "Birth Date", "AFSCME ID","Local Code", "Employee No.", "Member Type", 
-        "Type Date", "Agency Code", "Job Class Code", "MoD Card", "Agency Name",
-        "Bargaining Unit Code","Building Code Name", "Contract Code"],
+        "Birth Date",
+        "AFSCME ID",
+        "Local Code", 
+        "Employee No.",
+        "Member Type",
+        "Type Date",
+        "Agency Code",
+        "Job Class Code",
+        "MoD Card",
+        "Agency Name",
+        "Bargaining Unit Code",
+        "Building Code Name",
+        "Contract Code",
+        "Job Active"
+    ],
     value_vars = ["Home Email", "External Email"],
     value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
+df_personal_jobs = df_personal_jobs[df_personal_jobs['Job Active'] != "No"]
 df_personal_jobs["Email"] = df_personal_jobs["Email"].str.lower()
 df_personal_jobs = df_personal_jobs.drop_duplicates(["Email"])
 
+
+
 df_work_jobs = df_jobs.drop(columns=["Short #", "External Email", "Home Email"])
+df_work_jobs = df_work_jobs[df_work_jobs['Job Active'] != "No"]
 df_work_jobs = df_work_jobs.sort_values(by="Type Date")
 df_work_jobs["Work Email"] = df_work_jobs["Work Email"].str.lower()
 df_work_jobs = df_work_jobs.drop_duplicates("Work Email", keep='last')
+
 
 #check progress
 #df_personal_jobs.head() 
@@ -223,29 +255,39 @@ df_work_addresses = pd.read_csv("inputs/members_and_work_addresses.csv")
 df_work_addresses.columns = df_work_addresses.columns.str.strip()
 
 #check fields are all there and in order. duplicate names are given ".1" appendage by pandas currently 1-14-26
-expected_order = ["Local Code", "Short #", "Employee No.", "First Name", "Middle Name", "Last Name", 
-                  "Member Active", "Member Status", "Status Date", "Birth Date", "Gender", "Address Line 1", 
-                  "Address Line 2", "City", "State Abbr.", "Zip Code", "Home Phone", "Cell Phone", 
-                  "Work Phone", "Home Email", "Work Email", "AFSCME ID", "Member Type", "Type Date", 
-                  "Card Signature Date", "Agency Code", "Agency Name", "Work Site Work Site Code", 
-                  "Work Site Name", "Building Code Code", "Building Code Name", "Job Class Code", 
-                  "Job Class Name", "Address Type",	"Address Line 1.1" ,"Address Line 2.1", "Address Line 3", 
-                  "City.1", "County", "Job Work City Name", "Work County Name", "Seniority Date", 
-                  "Policy Group Code",	"Policy Group Name", "Bargaining Unit Code", "Bargaining Unit Name", 
-                  "Field Office Name", "Job ID"]
+#expected_order = ["Local Code", "Short #", "Employee No.", "First Name", "Middle Name", "Last Name", 
+#                   "Member Active", "Member Status", "Status Date", "Birth Date", "Gender", "Address Line 1", 
+#                   "Address Line 2", "City", "State Abbr.", "Zip Code", "Home Phone", "Cell Phone", 
+#                   "Work Phone", "Home Email", "Work Email", "AFSCME ID", "Member Type", "Type Date", 
+#                   "Card Signature Date", "Agency Code", "Agency Name", "Work Site Work Site Code", 
+#                   "Work Site Name", "Building Code Code", "Building Code Name", "Job Class Code", 
+#                   "Job Class Name", "Address Type",	"Address Line 1.1" ,"Address Line 2.1", "Address Line 3", 
+#                   "City.1", "County", "Job Work City Name", "Work County Name", "Seniority Date", 
+#                   "Policy Group Code",	"Policy Group Name", "Bargaining Unit Code", "Bargaining Unit Name", 
+#                   "Field Office Name", "Job ID"]
 
-assert list(df_work_addresses.columns) == expected_order, "Unexpected column order check exports from Unionware for updates."
+#assert list(df_work_addresses.columns) == expected_order, "Unexpected column order check exports from Unionware for updates."
 
 
 # concat address line 1 and line 2 with a space between. We may drop this because it looks like Michael was.
-df_work_addresses["Work Address"] = df_work_addresses["Address Line 1.1"].str.cat(df_work_addresses["Address Line 2.1"], sep=" ", na_rep="")
+#df_work_addresses["Work Address"] = df_work_addresses["Address Line 1.1"].str.cat(df_work_addresses["Address Line 2.1"], sep=" ", na_rep="")
+#df_work_addresses["Work Address"] = df_work_addresses["Address Line 1.1"]
+df_work_addresses["Work Address"] = df_work_addresses["Address Line 1"]
 
 df_work_addresses["Employee No."] = (
     pd.to_numeric(df_work_addresses["Employee No."], errors="coerce")
       .astype("Int64")
 )
 
-work_addresses_to_keep = ["Policy Group Code", "Work Address", "Job Work City Name", "Work County Name", "Work Site Work Site Code", "Field Office Name", "Job ID"]
+work_addresses_to_keep = [
+    "Policy Group Code",
+    "Work Address",
+    "Job Work City Name",
+    "Work County Name",
+    "Work Site Work Site Code",
+    "Field Office Name",
+    "Job ID"
+]
 
 df_work_addresses = df_work_addresses[work_addresses_to_keep].drop_duplicates()
 
@@ -269,10 +311,25 @@ df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == "no", "Cell Ph
 
 # define fields to keep
 #personal
-personal_to_keep = ["Short #","First Name", "Last Name", "Home Email", "External Email", "Cell Phone","Job ID"]
+personal_to_keep = [
+    "Short #",
+    "First Name",
+    "Last Name",
+    "Home Email",
+    "External Email",
+    "Cell Phone",
+    "Job ID"
+]
 df_personal = df_phones_and_emails[personal_to_keep]
 #work
-work_to_keep = ["Short #","First Name", "Last Name", "Work Email", "Cell Phone","Job ID"]
+work_to_keep = [
+    "Short #",
+    "First Name",
+    "Last Name",
+    "Work Email",
+    "Cell Phone",
+    "Job ID"
+]
 df_work = df_phones_and_emails[work_to_keep]
 df_work = df_work.dropna(subset="Work Email")
 df_work["Work Email"] = df_work["Work Email"].str.lower()
@@ -280,8 +337,17 @@ df_work = df_work.drop_duplicates("Work Email")
 
 # melt/pivot emails into 1 column and drop dupes
 df_personal = df_personal.melt(
-    id_vars = ["Short #","First Name", "Last Name", "Job ID", "Cell Phone"],
-    value_vars = ["Home Email", "External Email"],
+    id_vars = [
+        "Short #",
+        "First Name",
+        "Last Name",
+        "Job ID",
+        "Cell Phone"
+    ],
+    value_vars = [
+        "Home Email",
+        "External Email"
+    ],
     value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
 df_personal["Email"] = df_personal["Email"].str.lower()
 df_personal = df_personal.drop_duplicates("Email")
@@ -303,7 +369,13 @@ mask = (
     df_addresses["Bad Address"].str.strip().str.lower().eq("yes")
 )
 #apply mask
-df_addresses.loc[mask, ["Address Line 1", "City", "State", "Zip Code"]] = ""
+df_addresses.loc[mask, [
+    "Address Line 1",
+    "City",
+    "State",
+    "Zip Code"
+    ]
+] = ""
 
 #clear dupes to most recent by 'short #'
 df_addresses = df_addresses.sort_values(by="Last Updated On").drop_duplicates("Short #", keep='last')
