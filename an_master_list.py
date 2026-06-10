@@ -131,14 +131,14 @@ df_personal_jobs = df_jobs.melt(
     ],
     value_vars = ["Home Email", "External Email"],
     value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
-df_personal_jobs = df_personal_jobs[df_personal_jobs['Job Active'] != "No"]
+df_personal_jobs = df_personal_jobs[df_personal_jobs['Job Active'] != "FALSE"]
 df_personal_jobs["Email"] = df_personal_jobs["Email"].str.lower()
 df_personal_jobs = df_personal_jobs.drop_duplicates(["Email"])
 
 
 
 df_work_jobs = df_jobs.drop(columns=["Short #", "External Email", "Home Email"])
-df_work_jobs = df_work_jobs[df_work_jobs['Job Active'] != "No"]
+df_work_jobs = df_work_jobs[df_work_jobs['Job Active'] != "FALSE"]
 df_work_jobs = df_work_jobs.sort_values(by="Type Date")
 df_work_jobs["Work Email"] = df_work_jobs["Work Email"].str.lower()
 df_work_jobs = df_work_jobs.drop_duplicates("Work Email", keep='last')
@@ -173,7 +173,7 @@ df_contracts.head()
 
 #positions table prep
 df_positions = pd.read_csv("inputs/members_and_positions.csv")
-df_positions = df_positions[df_positions["Position Active"].str.strip().str.lower() == "yes"]
+df_positions = df_positions[df_positions["Position Active"].str.strip().str.lower() == "TRUE"]
 
 #add Local Presidient field
 df_positions["Local President"] = pd.NA  # start with empty string
@@ -236,7 +236,7 @@ df_people = pd.read_csv("inputs/members_and_people.csv")
 people_to_keep = ["Short #", "PEOPLE Active"]
 df_people = df_people[people_to_keep]
 
-#Change from "Yes" to "Y". Assumes all are already "Yes" comming out of Unionware
+#Change from "TRUE" to "Y". Assumes all are already "TRUE" comming out of Unionware
 df_people["PEOPLE Active"] = "Y"
 df_people = df_people.drop_duplicates(["Short #"])
 df_people["PEOPLE Active"] = df_people["PEOPLE Active"].fillna("N")
@@ -303,11 +303,11 @@ df_work_addresses.loc[df_work_addresses["Job ID"] == 78674]
 # load data to df
 df_phones_and_emails = pd.read_csv("inputs/members_and_phones_emails.csv")
 
-# empty emails or phones if allowed = no
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "Home Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "Work Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "no", "External Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == "no", "Cell Phone"] = ""
+# empty emails or phones if allowed = FALSE
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "Home Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "Work Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "External Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == "FALSE", "Cell Phone"] = ""
 
 # define fields to keep
 #personal
@@ -365,8 +365,8 @@ df_addresses = pd.read_csv("inputs/members_and_addresses.csv")
 
 #create mask for filtering on values for mail allowed and bad address
 mask = (
-    df_addresses["Mail Allowed"].str.strip().str.lower().eq("no") |
-    df_addresses["Bad Address"].str.strip().str.lower().eq("yes")
+    df_addresses["Mail Allowed"].str.strip().str.lower().eq("FALSE") |
+    df_addresses["Bad Address"].str.strip().str.lower().eq("TRUE")
 )
 #apply mask
 df_addresses.loc[mask, [
