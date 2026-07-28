@@ -111,6 +111,10 @@ df_map = pd.read_csv("helper_tables/member_type_map.csv")
 map_series = df_map.set_index("from")["to"]
 df_jobs["Member Type"] = df_jobs["Member Type"].map(map_series)
 
+#fix MOD card booleans to be Y/N
+df_jobs['MoD Card'] = df_jobs['MoD Card'].map({True: 'Y', False: 'N'})
+
+
 #melt/unpivot
 df_personal_jobs = df_jobs.melt(
     id_vars = [
@@ -131,22 +135,22 @@ df_personal_jobs = df_jobs.melt(
     ],
     value_vars = ["Home Email", "External Email"],
     value_name = "Email").dropna(subset=["Email"]).drop(columns=["variable"])
-df_personal_jobs = df_personal_jobs[df_personal_jobs['Job Active'] != "FALSE"]
+df_personal_jobs = df_personal_jobs[df_personal_jobs['Job Active'] != False]
 df_personal_jobs["Email"] = df_personal_jobs["Email"].str.lower()
 df_personal_jobs = df_personal_jobs.drop_duplicates(["Email"])
-
+df_personal_jobs = df_personal_jobs.drop(columns=["Job Active"])
 
 
 df_work_jobs = df_jobs.drop(columns=["Short #", "External Email", "Home Email"])
-df_work_jobs = df_work_jobs[df_work_jobs['Job Active'] != "FALSE"]
+df_work_jobs = df_work_jobs[df_work_jobs['Job Active'] != False]
 df_work_jobs = df_work_jobs.sort_values(by="Type Date")
 df_work_jobs["Work Email"] = df_work_jobs["Work Email"].str.lower()
 df_work_jobs = df_work_jobs.drop_duplicates("Work Email", keep='last')
-
+df_work_jobs = df_work_jobs.drop(columns=["Job Active"])
 
 #check progress
 #df_personal_jobs.head() 
-
+df_personal_jobs.info()
 df_work_jobs.info()
 
 
@@ -160,7 +164,7 @@ df_contracts = pd.read_csv("inputs/members_and_contracts.csv")
 df_contract_codes = pd.read_csv("helper_tables/contract_codes_from_names.csv")
 
 # Map codes from names 
-df_contracts["Contract Code"] = df_contracts["Contract.1"].map(
+df_contracts["Contract Code"] = df_contracts["Contract"].map(
     df_contract_codes.set_index("contract")["contract code"])
 
 contracts_to_keep = ["Short #", "Contract Code"]
@@ -173,7 +177,7 @@ df_contracts.head()
 
 #positions table prep
 df_positions = pd.read_csv("inputs/members_and_positions.csv")
-df_positions = df_positions[df_positions["Position Active"].str.strip().str.lower() == "TRUE"]
+df_positions = df_positions[df_positions["Position Active"] == True]
 
 #add Local Presidient field
 df_positions["Local President"] = pd.NA  # start with empty string
@@ -233,13 +237,14 @@ df_people = pd.read_csv("inputs/members_and_people.csv")
 
 
 #filter down
-people_to_keep = ["Short #", "PEOPLE Active"]
+people_to_keep = ["Short #", "Active"]
 df_people = df_people[people_to_keep]
 
 #Change from "TRUE" to "Y". Assumes all are already "TRUE" comming out of Unionware
-df_people["PEOPLE Active"] = "Y"
+df_people["Active"] = "Y"
 df_people = df_people.drop_duplicates(["Short #"])
-df_people["PEOPLE Active"] = df_people["PEOPLE Active"].fillna("N")
+df_people["Active"] = df_people["Active"].fillna("N")
+df_people = df_people.rename(columns={"Active": "PEOPLE Active"})
 
 #check progress
 df_people.info()
@@ -304,10 +309,10 @@ df_work_addresses.loc[df_work_addresses["Job ID"] == 78674]
 df_phones_and_emails = pd.read_csv("inputs/members_and_phones_emails.csv")
 
 # empty emails or phones if allowed = FALSE
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "Home Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "Work Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == "FALSE", "External Email"] = ""
-df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == "FALSE", "Cell Phone"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == False, "Home Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == False, "Work Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Email Allowed"] == False, "External Email"] = ""
+df_phones_and_emails.loc[df_phones_and_emails["Phone Allowed"] == False, "Cell Phone"] = ""
 
 # define fields to keep
 #personal
@@ -364,10 +369,8 @@ df_personal.loc[df_personal["Job ID"] == 78674]
 df_addresses = pd.read_csv("inputs/members_and_addresses.csv")
 
 #create mask for filtering on values for mail allowed and bad address
-mask = (
-    df_addresses["Mail Allowed"].str.strip().str.lower().eq("FALSE") |
-    df_addresses["Bad Address"].str.strip().str.lower().eq("TRUE")
-)
+mask = (df_addresses["Mail Allowed"] == False) | (df_addresses["Bad Address"] == True)
+
 #apply mask
 df_addresses.loc[mask, [
     "Address Line 1",
@@ -587,7 +590,7 @@ df_test = df_all_personal.sample(100)
 df_test.to_csv("outputs/test_rows.csv", index=False)
 
 
-# In[ ]:
+
 
 
 
