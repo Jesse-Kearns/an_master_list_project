@@ -520,6 +520,10 @@ def final_clean(df, personal):
     # 3. Map bargaining unit codes
     df = rename_with_schema(df, personal, "helper_tables/final_header_map.csv")
 
+    #3.5 renumber all later but this is what the funcs say on the tin.
+    df = hotfix_for_TESC_contract(df)
+    df = hotfix_for_UW_contract(df)
+
     # 4. Fill blanks in Position related fields with "N"
     position_fields = [
         "c28_local_president",
@@ -560,12 +564,35 @@ def final_clean(df, personal):
 
     return df
 
+def hotfix_for_TESC_contract(df):
+    """takes a df and fixes c28_contract values for TESC agency records."""
+ 
+    # Establish the filter condition
+    condition = (df["c28_contract"] == "HE-CC") & (df["c28_Agency"] == "THE EVERGREEN STATE COLLEGE")
+
+    # Apply the hotfix to the filtered rows
+    df.loc[condition, "c28_contract"] = "TESC"
+
+    return df
+
+def hotfix_for_UW_contract(df):
+    """takes a df and fixes contract values for U of W HMC records."""
+
+    # Establish the filter condition
+    condition = (df["c28_contract"] == "U of W PMA") & (df["c28_subagency"] == "HMC")
+
+    # Apply the hotfix to change the contract to 'U of W PMA'
+    df.loc[condition, "c28_contract"] = "U of W"
+
+    return df
+
 
 # In[ ]:
 
 
 df_all_work = final_clean(df_all_work, False)
 df_all_personal = final_clean(df_all_personal, True)
+#placeholder odds and ends function
 df_all_work.head()
 
 
