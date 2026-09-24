@@ -523,6 +523,7 @@ def final_clean(df, personal):
     #3.5 renumber all later but this is what the funcs say on the tin.
     df = hotfix_for_TESC_contract(df)
     df = hotfix_for_UW_contract(df)
+    df = hotfix_for_DOC_contract(df)
 
     # 4. Fill blanks in Position related fields with "N"
     position_fields = [
@@ -583,6 +584,17 @@ def hotfix_for_UW_contract(df):
 
     # Apply the hotfix to change the contract to 'U of W PMA'
     df.loc[condition, "c28_contract"] = "U of W"
+
+    return df
+
+def hotfix_for_DOC_contract(df):
+    """takes a df and fixes c28_contract values for TESC agency records."""
+ 
+    # Establish the filter condition
+    condition = (df["c28_Agency"] == "DEPT OF CORRECTIONS")
+
+    # Apply the hotfix to the filtered rows
+    df.loc[condition, "c28_contract"] = "DOC"
 
     return df
 
