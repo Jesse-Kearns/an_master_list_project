@@ -591,7 +591,7 @@ def hotfix_for_DOC_contract(df):
     """takes a df and fixes c28_contract values for TESC agency records."""
  
     # Establish the filter condition
-    condition = (df["c28_Agency"] == "DEPT OF CORRECTIONS")
+    condition = (df["c28_contract"] == "GG") & (df["c28_Agency"] == "DEPT OF CORRECTIONS")
 
     # Apply the hotfix to the filtered rows
     df.loc[condition, "c28_contract"] = "DOC"
